@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPrefs {
+  // Save user data
   static Future<void> saveUserData(
     String name,
     String email,
@@ -20,6 +21,7 @@ class SharedPrefs {
     }
   }
 
+  // Retrieve user data
   static Future<Map<String, String?>> getUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return {
@@ -32,6 +34,7 @@ class SharedPrefs {
     };
   }
 
+  // Clear all user data
   static Future<void> clearUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -47,5 +50,28 @@ class SharedPrefs {
   static Future<bool> getOnlineStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getBool('is_online') ?? false; // Default to offline if not set
+  }
+
+  // **New: Save CSRF Token**
+  static Future<void> saveCsrfToken(String csrfToken) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('csrf_token', csrfToken);
+  }
+
+  // **New: Get CSRF Token**
+  static Future<String?> getCsrfToken() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('csrf_token');
+  }
+
+  static Future<void> saveSessionId(String sessionId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('sessionid', sessionId);
+    print("Session ID saved: $sessionId");
+  }
+
+  static Future<String?> getSessionId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('sessionid');
   }
 }

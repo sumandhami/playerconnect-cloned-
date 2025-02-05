@@ -12,12 +12,25 @@ def get_session():
     return Session_local()
 
 #adds the user after he sign up
-def signup_u(name, email, password, location,  phone_number):
+def signup_u(name, email, password, location, phone_number):
     session = get_session()
     try:
+        # Check if email already exists
+        existing_user = session.query(User).filter_by(email=email).first()
+        if existing_user:
+            return {"status": "error", "message": f"A user with email '{email}' already exists."}
+
+        # Check if phone number already exists
+        existing_phone = session.query(User).filter_by(phone_number=phone_number).first()
+        if existing_phone:
+            return {"status": "error", "message": f"Phone number '{phone_number}' is already in use."}
+
+        # Hash password
         salt = bcrypt.gensalt()
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
         encryptedpass = hashed_password.decode('utf-8')
+
+        # Create new user
         user = User(
             name=name,
             email=email,
@@ -28,15 +41,13 @@ def signup_u(name, email, password, location,  phone_number):
         session.add(user)
         session.commit()
         return {"status": "success", "message": f"User '{name}' added successfully!"}
-    except IntegrityError:
-        session.rollback()
-        return {"status": "error", "message": f"A user with email '{email}' already exists."}
+
     except Exception as e:
         session.rollback()
         return {"status": "error", "message": f"Error adding user: {e}"}
+
     finally:
         session.close()
-
 
 
 def get_all_players():

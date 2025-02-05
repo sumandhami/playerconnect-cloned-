@@ -12,23 +12,28 @@ from sqlalchemy import text
 def get_session():
     return Session_local()
 
-def login_u(email,password):
+def login_u(email, password):
     session = get_session()
     try:
-        user = session.query(User).filter_by(email = email).first()
+        user = session.query(User).filter_by(email=email).first()
+        
         if not user:
-            return {"status": "error", "message": "SIgnup first"}
+            return {"status": "error", "message": "Signup first"}
         
-        if(bcrypt.checkpw(password.encode('utf-8'),user.password.encode('utf-8'))):
-            token = genToken(user.user_id)
-            return {"status": "success", "message": f"login succesfull","token":token}
-        
+        # Check if the password is correct
+        if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+            token = genToken(user.user_id)  # Generate a JWT token
+            return {
+                "status": "success", 
+                "message": "Login successful", 
+                "token": token
+            }
         else:
-            return {"status": "error", "message": f"incorrect password"} 
+            return {"status": "error", "message": "Incorrect password"}
 
     except Exception as e:
         session.rollback()
-        return {"status": "error", "message": f"Error Email Or Password"}
+        return {"status": "error", "message": "An error occurred. Please try again later."}
     finally:
         session.close()
     

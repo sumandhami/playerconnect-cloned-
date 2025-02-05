@@ -7,6 +7,8 @@ from backend.futsal_be.kick.utilities.utilities_user import change_state,login_u
 from backend.futsal_be.kick.utilities.haversine import calculate_dist
 import json
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 
 @csrf_exempt
 def login(request):
@@ -16,11 +18,23 @@ def login(request):
             email = data.get("email")
             password = data.get("password")
 
-            result = login_u(email,password)
+            # Check if email and password are provided
+            if not email or not password:
+                return JsonResponse({"status": "error", "message": "Email and password are required."}, status=400)
+
+            # Call the login function
+            result = login_u(email, password)
+
+            # Return the result of the login attempt
             return JsonResponse(result)
-        
+
         except json.JSONDecodeError:
-            return JsonResponse({"status": "error", "message": "Invalid JSON data!"}) 
+            return JsonResponse({"status": "error", "message": "Invalid JSON data!"}, status=400)
+        except Exception as e:
+            # Log the error for debugging purposes
+            print(f"Error during login: {e}")
+            return JsonResponse({"status": "error", "message": "An unexpected error occurred. Please try again later."}, status=500)
+
 
 def Change_state(request):
     if request.method == "POST":

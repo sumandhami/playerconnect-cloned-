@@ -4,12 +4,13 @@ from django.http import HttpResponse
 from backend.futsal_be.kick.utilities.utilities_admin import get_all_players,signup_u,add_futsal,input_timeslotbyFutsal
 from backend.futsal_be.kick.utilities.utilities_admin import update_game_status
 import json
-
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 @ensure_csrf_cookie
 def csrf_token_view(request):
-    return JsonResponse({"message": "CSRF token set!"})
+    csrf_token = get_token(request)
+    return JsonResponse({'csrf_token': csrf_token})
 
 # Create your views here.
 def members(request):
@@ -18,6 +19,10 @@ def members(request):
 def player_list(request): 
     players = get_all_players()
     return JsonResponse({"players": players})
+
+import json
+from django.http import JsonResponse
+from django.contrib.auth.models import User  # Ensure this is correctly imported
 
 def signup(request):
     if request.method == "POST":
@@ -32,14 +37,27 @@ def signup(request):
 
             # Validate inputs
             if not all([name, email, password, location, phone_number]):
-                return JsonResponse({"status": "error", "message": "All fields are required!"})
+                return JsonResponse({"status": "error", "message": "All fields are required!"}, status=400)
 
-            # Call the add_user function
+            # Debugging: Print received data
+            print(f"Received signup request: {data}")
+
+            # Create new user using the updated signup_u function
             result = signup_u(name, email, password, location, phone_number)
-            return JsonResponse(result)
+
+            # Determine response status code based on the result
+            if result["status"] == "success":
+                return JsonResponse(result, status=201)  # 201 for successful signup
+            else:
+                return JsonResponse(result, status=400)  # 400 for errors like duplicate email
 
         except json.JSONDecodeError:
-            return JsonResponse({"status": "error", "message": "Invalid JSON data!"})
+            return JsonResponse({"status": "error", "message": "Invalid JSON data!"}, status=400)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return JsonResponse({"status": "error", "message": f"Internal server error: {str(e)}"}, status=500)
+
+
         
 def addfutsal(request):
     if request.method == "POST":

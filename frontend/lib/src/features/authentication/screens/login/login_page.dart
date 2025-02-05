@@ -5,6 +5,9 @@ import 'package:playerconnect/src/features/authentication/screens/forgotpass/for
 import 'package:playerconnect/src/features/authentication/screens/singup/signup_page.dart';
 import 'package:playerconnect/src/pages/home_page.dart';
 import '../../../shared_preferences/shared_prefs.dart';
+import 'dart:convert'; // For JSON encoding
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
@@ -19,17 +22,59 @@ class _LoginpageState extends State<Loginpage> {
   final _passwordController = TextEditingController();
 
   Future<void> checkLogin() async {
-    Map<String, String?> userData = await SharedPrefs.getUserData();
+    final email = _emailController.text;
+    final password = _passwordController.text;
 
-    if (_emailController.text == userData["email"] &&
-        _passwordController.text == userData["password"]) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => My_HomePage()),
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Email and password are required')),
       );
+      return;
+    }
+
+    // Retrieve the CSRF token from SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? csrfToken = prefs.getString('csrf_token');
+    if (csrfToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CSRF token missing')),
+      );
+      return;
+    }
+
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:8000/login/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken, // Include CSRF token in the header
+      },
+      body: json.encode({
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      if (responseData['status'] == 'success') {
+        // Save JWT token (optional, e.g., in SharedPreferences)
+        String token = responseData['token'];
+        await prefs.setString(
+            'auth_token', token); // Store token for future requests
+
+        // Navigate to the home page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => My_HomePage()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(responseData['message'])),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Invalid Email or Password")),
+        SnackBar(content: Text('Login failed. Please try again.')),
       );
     }
   }

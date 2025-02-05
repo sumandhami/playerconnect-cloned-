@@ -4,7 +4,10 @@ import 'package:playerconnect/src/common_widgets/Validations/inputvalidation.dar
 import 'package:playerconnect/src/common_widgets/Validations/passwordvalidation.dart';
 import 'package:playerconnect/src/common_widgets/Validations/phonenovalidation.dart';
 import '../login/login_page.dart';
-import '../../../shared_preferences/shared_prefs.dart';
+import '../../../../services/csrf_services.dart';
+import 'dart:convert'; // For JSON encoding
+import 'package:http/http.dart' as http; // For making network requests
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
   SignUpPage({super.key});
@@ -24,18 +27,72 @@ class _SignUpPageState extends State<SignUpPage> {
   final _locationController = TextEditingController();
 
   void handleSignup() async {
-    await SharedPrefs.saveUserData(
-      _nameController.text,
-      _emailController.text,
-      _phoneController.text,
-      _locationController.text,
-      _passwordController.text,
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Passwords do not match!')),
+      );
+      return;
+    }
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? csrfToken = prefs.getString('csrf_token');
+
+    if (csrfToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CSRF token is missing!')),
+      );
+      return;
+    }
+
+    Map<String, String> userData = {
+      'name': _nameController.text,
+      'email': _emailController.text,
+      'phone_number': _phoneController.text,
+      'location': _locationController.text,
+      'password': _passwordController.text,
+    };
+
+    var response = await http.post(
+      Uri.parse('http://10.0.2.2:8000/signup/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken, // CSRF token in header
+        'Cookie': 'csrftoken=$csrfToken', // Also send CSRF token in Cookie
+      },
+      body: json.encode(userData),
     );
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => Loginpage()));
+
+    if (response.statusCode == 201) {
+      // Signup successful
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup successful!')),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Loginpage()),
+      );
+    } else {
+      // Handle errors
+      var responseData = json.decode(response.body);
+      String errorMessage = "Signup failed: ${response.statusCode}";
+
+      // Correctly retrieve error messages
+      if (responseData.containsKey('message')) {
+        errorMessage = responseData['message']; // Get the correct error message
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
   }
 
   @override
+  void initState() {
+    super.initState();
+    CsrfService.fetchCsrfToken(); //fetch CSRF token on page load
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
