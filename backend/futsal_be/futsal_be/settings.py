@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-2jw42)9=lot1*3xjv-ck@y=_ye$2poosaqav-1ce&v9udu5))b'
+SECRET_KEY = 'secrectkey'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'rest_framework',
+    'rest_framework_simplejwt', 
     'kick',
 ]
 
@@ -47,10 +49,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Required
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'futsal_be.urls'
 
@@ -69,6 +72,16 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 
 WSGI_APPLICATION = 'futsal_be.wsgi.application'
 
@@ -106,19 +119,22 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
+
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000", 
     "http://127.0.0.1:8000", 
     "http://10.0.2.2:8000"
 ]
 
-CORS_ALLOW_CREDENTIALS = True  # Allow credentials like cookies
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://10.0.2.2:8000",
 ]
 
+CORS_ALLOW_CREDENTIALS = True  # Allow credentials like cookies
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -141,3 +157,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': 'secretkey',  # Make sure this matches your signing key
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'user_id',
+}

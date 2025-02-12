@@ -16,7 +16,7 @@ def login_u(email, password):
     session = get_session()
     try:
         user = session.query(User).filter_by(email=email).first()
-        
+        print(user.user_id)
         if not user:
             return {"status": "error", "message": "Signup first"}
         
@@ -36,7 +36,63 @@ def login_u(email, password):
         return {"status": "error", "message": "An error occurred. Please try again later."}
     finally:
         session.close()
+
+def getplayer_u(user_id):
+    session = get_session()
+    try:
+        user = session.query(User).filter_by(user_id=user_id).first()
+        
+        if not user:
+            return {"status": "error", "message": "User not found!"}
+
+        # Prepare user data to return
+        user_data = {
+            "user_id": user.user_id,
+            "name": user.name,
+            "email": user.email,
+            "phone_number": user.phone_number,
+            "location": user.location,
+            "status": user.status,
+            "credit": user.credit,
+            "image": None if not user.image else user.image.hex(),  # Convert binary to hex string
+            # "is_verified": user.is_verified,  # Uncomment if needed
+        }
+
+        return {"status": "success", "user": user_data}
+
+    except Exception as e:
+        session.rollback()
+        return {"status": "error", "message": f"An error occurred: {e}"}
+
+    finally:
+        session.close()
+
     
+def update_u(user_id,name,image,location,phone_number):
+    session = get_session()
+    try:
+
+        user = session.query(User).filter_by(user_id=user_id).first()
+        if not user:
+            return {"status": "error", "message": "User not found!"}
+
+        if name is not None:
+            user.name = name
+        if image is not None:
+            user.image = image
+        if location is not None:
+            user.location = location
+        if phone_number is not None:
+            user.phone_number = phone_number
+            
+        session.commit()
+        return {"status": "success", "message": "User updated successfully!"}
+    except Exception as e:
+        session.rollback()
+        return {"status": "error", "message": f"An error occurred: {e}"}
+    
+    finally:
+        session.close()
 
 def change_state(user_id):
     session = get_session()
@@ -45,10 +101,10 @@ def change_state(user_id):
         if not user:
             return {"status": "error", "message": "User not found!"}
         
-        if user.status == "available":
-            user.status = "not available"
+        if user.status == "online":
+            user.status = "offline"
         else:
-            user.status = "available"
+            user.status = "online"
         
         session.commit()
 

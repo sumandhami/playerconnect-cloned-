@@ -5,7 +5,6 @@ from backend.futsal_be.futsal_be.db_setup import Session_local
 
 from kick.models import User,FutsalLocation
 
-from geopy.distance import geodesic
 import math
 
 def get_session():

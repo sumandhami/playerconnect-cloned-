@@ -5,7 +5,7 @@ from backend.futsal_be.kick.utilities.utilities_admin import get_all_players,sig
 from backend.futsal_be.kick.utilities.utilities_admin import update_game_status
 import json
 from django.middleware.csrf import get_token
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie,csrf_exempt
 
 @ensure_csrf_cookie
 def csrf_token_view(request):
@@ -16,14 +16,13 @@ def csrf_token_view(request):
 def members(request):
     return HttpResponse("Hello World")
 
-def player_list(request): 
-    players = get_all_players()
-    return JsonResponse({"players": players})
+
 
 import json
 from django.http import JsonResponse
 from django.contrib.auth.models import User  # Ensure this is correctly imported
 
+@csrf_exempt
 def signup(request):
     if request.method == "POST":
         try:
@@ -58,7 +57,7 @@ def signup(request):
             return JsonResponse({"status": "error", "message": f"Internal server error: {str(e)}"}, status=500)
 
 
-        
+@csrf_exempt      
 def addfutsal(request):
     if request.method == "POST":
         try:

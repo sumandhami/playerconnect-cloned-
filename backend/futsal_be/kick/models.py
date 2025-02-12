@@ -3,9 +3,10 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, Date, Time,UniqueConstraint
+from sqlalchemy import Column, Integer, String,LargeBinary, ForeignKey, Enum, Date, Time,UniqueConstraint
 from sqlalchemy.orm import relationship
 from backend.futsal_be.futsal_be.db_setup import Base
+from sqlalchemy.dialects.mysql import LONGBLOB
 
 
 class User(Base):
@@ -16,8 +17,9 @@ class User(Base):
     password = Column(String(255), nullable=False)
     phone_number = Column(String(15), nullable=False)
     location = Column(String(255), nullable=False)
-    status = Column(Enum('available','not available',name='player_status'),default = 'not available')
+    status = Column(Enum('online','offline',name='player_status'),default = 'offline')
     credit = Column(Integer, default=60)
+    image = Column(LONGBLOB, nullable=True)
     #is_verified = Column(Boolean, default=False)
 
 class FutsalLocation(Base):

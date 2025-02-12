@@ -3,12 +3,16 @@ from django.http import JsonResponse
 from django.http import HttpResponse
 from backend.futsal_be.kick.middleware import checkAuth
 from backend.futsal_be.kick.utilities.utilities_user import pick_slot,create_participation_request,handle_participation
-from backend.futsal_be.kick.utilities.utilities_user import change_state,login_u
+from backend.futsal_be.kick.utilities.utilities_user import change_state,login_u,update_u,getplayer_u
 from backend.futsal_be.kick.utilities.haversine import calculate_dist
 import json
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.decorators import authentication_classes, permission_classes
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
+from backend.futsal_be.kick.authenticate.checkjwt import decryptToken
+
 
 @csrf_exempt
 def login(request):
@@ -34,13 +38,51 @@ def login(request):
             # Log the error for debugging purposes
             print(f"Error during login: {e}")
             return JsonResponse({"status": "error", "message": "An unexpected error occurred. Please try again later."}, status=500)
+        
+def getplayer(request):
+    if request.method == "GET":
+        token = request.headers.get('Authorization', '').split(' ')[1]  # 'Bearer <token>'
+        try:
+            user_id_dict = decryptToken(token)
+            user_id = user_id_dict['user_id']
 
+            result = getplayer_u(user_id)
+            return JsonResponse(result)
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+    pass
+        
+#@permission_classes([IsAuthenticated])  # Ensure only authenticated users can access this view
+def update(request):
+    if request.method == "POST":
+        token = request.headers.get('Authorization', '').split(' ')[1]  # 'Bearer <token>'
+        try:
+            user_id_dict = decryptToken(token)
+            user_id = user_id_dict['user_id']
+            
+            name = request.POST.get("name")  # Use request.POST instead of json.loads
+            location = request.POST.get("location")
+            phone_number = request.POST.get("phone_number")
+            image = request.FILES.get("image")  # Get the uploaded file
+
+            if image:
+                image_data = image.read()  # Read the binary content of the file
+            else:
+                image_data = None
+
+            result = update_u(user_id, name, image_data, location, phone_number)
+            return JsonResponse(result)
+
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
 
 def Change_state(request):
     if request.method == "POST":
+        token = request.headers.get('Authorization', '').split(' ')[1]
         try:
-            data = json.loads(request.body)
-            user_id = data.get("user_id")
+            user_id_dict = decryptToken(token)
+            user_id = user_id_dict['user_id']
             
             result = change_state(user_id)
             return JsonResponse(result)
@@ -120,7 +162,7 @@ def near_by(request):
                 return JsonResponse({"status": "error", "message": "All fields are required!"})
             result = calculate_dist((longitude,latitude))
             print(result)
-            return JsonResponse(result)
+            return JsonResponse({"data":result})
             pass
         except json.JSONDecodeError:
             return JsonResponse({"status": "error", "message": "Invalid JSON data!"})
