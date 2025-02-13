@@ -4,7 +4,6 @@ import 'package:playerconnect/src/common_widgets/Validations/passwordvalidation.
 import 'package:playerconnect/src/features/authentication/screens/forgotpass/forgotpass.dart';
 import 'package:playerconnect/src/features/authentication/screens/singup/signup_page.dart';
 import 'package:playerconnect/src/pages/home_page.dart';
-import '../../../shared_preferences/shared_prefs.dart';
 import 'dart:convert'; // For JSON encoding
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,11 +34,16 @@ class _LoginpageState extends State<Loginpage> {
     // Retrieve the CSRF token from SharedPreferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? csrfToken = prefs.getString('csrf_token');
+
+    // If CSRF token is missing, fetch it from the server
     if (csrfToken == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CSRF token missing')),
-      );
-      return;
+      csrfToken = await fetchCsrfToken();
+      if (csrfToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to retrieve CSRF token')),
+        );
+        return;
+      }
     }
 
     final response = await http.post(
@@ -59,8 +63,17 @@ class _LoginpageState extends State<Loginpage> {
       if (responseData['status'] == 'success') {
         // Save JWT token (optional, e.g., in SharedPreferences)
         String token = responseData['token'];
+        print('JWT Token: $token');
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+String? locationId = prefs.getString('selected_location_id');
+print('LocationId: $locationId');
+
+
         await prefs.setString(
             'auth_token', token); // Store token for future requests
+
+        // Save the email in SharedPreferences after successful login
+        await prefs.setString('email', email);
 
         // Navigate to the home page
         Navigator.pushReplacement(
@@ -76,6 +89,28 @@ class _LoginpageState extends State<Loginpage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login failed. Please try again.')),
       );
+    }
+  }
+
+// Function to fetch CSRF token from the server
+  Future<String?> fetchCsrfToken() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'http://10.0.2.2:8000/csrf-token/'), // Your CSRF token endpoint
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        String csrfToken = responseData['csrf_token'];
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('csrf_token', csrfToken); // Store the CSRF token
+        return csrfToken;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
     }
   }
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:playerconnect/src/features/authentication/screens/create_request/timeslot/timeslot_page.dart';
+import 'package:playerconnect/src/pages/create_request/timeslot/timeslot_page.dart';
 
 class CreateRequest extends StatelessWidget {
   CreateRequest({super.key});

@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import views_admin
 from .views import views_user
 
+
 urlpatterns = [
     #admin user's
     path('csrf-token/', views_admin.csrf_token_view,name='csrf-token'),
