@@ -17,14 +17,14 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  //for validation
   final _formkey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _locationController = TextEditingController();
+  String? _selectedLocation;
+  String? _selectedLocationId;
 
   void handleSignup() async {
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -48,7 +48,7 @@ class _SignUpPageState extends State<SignUpPage> {
       'name': _nameController.text,
       'email': _emailController.text,
       'phone_number': _phoneController.text,
-      'location': _locationController.text,
+      'location': _selectedLocation ?? '',
       'password': _passwordController.text,
     };
 
@@ -56,14 +56,13 @@ class _SignUpPageState extends State<SignUpPage> {
       Uri.parse('http://10.0.2.2:8000/signup/'),
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken, // CSRF token in header
-        'Cookie': 'csrftoken=$csrfToken', // Also send CSRF token in Cookie
+        'X-CSRFToken': csrfToken,
+        'Cookie': 'csrftoken=$csrfToken',
       },
       body: json.encode(userData),
     );
 
     if (response.statusCode == 201) {
-      // Signup successful
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Signup successful!')),
       );
@@ -72,13 +71,11 @@ class _SignUpPageState extends State<SignUpPage> {
         MaterialPageRoute(builder: (context) => Loginpage()),
       );
     } else {
-      // Handle errors
       var responseData = json.decode(response.body);
       String errorMessage = "Signup failed: ${response.statusCode}";
 
-      // Correctly retrieve error messages
       if (responseData.containsKey('message')) {
-        errorMessage = responseData['message']; // Get the correct error message
+        errorMessage = responseData['message'];
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,10 +84,53 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
+Future<void> _selectLocation() async {
+  Map<String, String>? location = await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Color(0xFF1B2A41),
+        title: Text("Select Location", style: TextStyle(color: Colors.white)),
+        content: Container(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              {"name": "Kathmandu", "id": "1"},
+              {"name": "Bhaktapur", "id": "2"},
+              {"name": "Lalitpur", "id": "3"}
+            ]
+                .map((location) => ListTile(
+                      title: Text(location["name"] ?? "Unknown", style: TextStyle(color: Colors.grey.shade300)),
+                      onTap: () {
+                        Navigator.pop(context, location);
+                      },
+                    ))
+                .toList(),
+          ),
+        ),
+      );
+    },
+  );
+
+  if (location != null) {
+    setState(() {
+      _selectedLocation = location["name"];
+      _selectedLocationId = location["id"];
+    });
+
+    // Store the location ID in SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('selected_location_id', _selectedLocationId!); // Save the ID
+  }
+}
+
+
+
   @override
   void initState() {
     super.initState();
-    CsrfService.fetchCsrfToken(); //fetch CSRF token on page load
+    CsrfService.fetchCsrfToken();
   }
 
   Widget build(BuildContext context) {
@@ -98,7 +138,6 @@ class _SignUpPageState extends State<SignUpPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Gradient background
             Container(
               width: double.infinity,
               height: double.infinity,
@@ -115,7 +154,6 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
               ),
             ),
-            // Content
             Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
@@ -124,10 +162,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Text with border, same as login
                       Stack(
                         children: [
-                          // Border text
                           Text(
                             "FUTSAL PLAYER CONNECT",
                             style: TextStyle(
@@ -142,7 +178,6 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          // Main text
                           Text(
                             "FUTSAL PLAYER CONNECT",
                             style: TextStyle(
@@ -168,39 +203,39 @@ class _SignUpPageState extends State<SignUpPage> {
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: 50),
-                      // Name Input
                       Inputvalidation(
                           inputController: _nameController, labelText: "Name"),
                       SizedBox(height: 15),
-                      // Email Input
                       Emailvalidation(
                           emailController: _emailController,
                           labelText: 'Email'),
                       SizedBox(height: 15),
-                      // Phone Number Input
                       Phonenovalidation(
                           phoneController: _phoneController,
                           labelText: "Phone Number"),
                       SizedBox(height: 15),
-                      // Location Input
-                      Inputvalidation(
-                          inputController: _locationController,
-                          labelText: "Location"),
-                      SizedBox(height: 15),
-                      // Password Input
                       PasswordValidation(
                           controller: _passwordController,
                           labelText: "Password"),
                       SizedBox(height: 15),
-                      // Confirm Password Input
                       PasswordValidation(
                         controller: _confirmPasswordController,
-                        confirmPasswordController:
-                            _passwordController, // Check against password
+                        confirmPasswordController: _passwordController,
                         labelText: "Confirm Password",
                       ),
+                      SizedBox(height: 15),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF1E3A5F),
+                          minimumSize: Size(double.infinity, 50),
+                        ),
+                        onPressed: _selectLocation,
+                        child: Text(
+                          _selectedLocation ?? "Select Location",
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                      ),
                       SizedBox(height: 30),
-                      // Sign Up Button
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF65A3B8),
@@ -215,9 +250,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           elevation: 10,
                         ),
                         onPressed: () {
-                          // Add sign-up functionality here
                           if (_formkey.currentState!.validate()) {
-                            // Form is valid, proceed to the next page
                             handleSignup();
                           }
                         },
@@ -232,7 +265,6 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                       ),
                       SizedBox(height: 20),
-                      // Already have an account? Login Link
                       TextButton(
                         onPressed: () {
                           Navigator.pushReplacement(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../shared_preferences/shared_prefs.dart';
+import '../../features/shared_preferences/shared_prefs.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});

@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:playerconnect/src/features/authentication/screens/create_request/create_request.dart';
-import 'package:playerconnect/src/features/authentication/screens/editprofile/editprofile.dart';
-import 'package:playerconnect/src/features/authentication/screens/join_request/join_request.dart';
+import 'package:http/http.dart' as http;
+import 'package:playerconnect/src/pages/playersearch/playersearch.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:playerconnect/src/pages/create_request/create_request.dart';
+import 'package:playerconnect/src/pages/editprofile/editprofile.dart';
+import 'package:playerconnect/src/pages/join_request/join_request.dart';
 import 'package:playerconnect/src/features/authentication/screens/login/login_page.dart';
 import 'package:playerconnect/src/pages/map_page.dart';
 import '../features/shared_preferences/shared_prefs.dart';
@@ -30,14 +34,52 @@ class _My_HomePageState extends State<My_HomePage> {
   }
 
   Future<void> loadUserData() async {
-    Map<String, String?> userData = await SharedPrefs.getUserData();
-    setState(() {
-      userName = userData["name"] ?? "Guest";
-      userEmail = userData["email"] ?? "No Email";
-      userPhone = userData["phone_no"] ?? "No Phone";
-      userLocation = userData["location"] ?? "No Location";
-      profilePicturePath = userData["profile_picture"];
-    });
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('auth_token');
+
+    if (token == null) {
+      print('Token missing!');
+      return;
+    }
+
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/players/'), // Fetch all players
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      List<dynamic> players =
+          responseData['players']; // Access the players list
+
+      // Get the logged-in user's email from SharedPreferences (set during login)
+      String? email = prefs.getString('email');
+      print('Logged-in emai:$email');
+
+      // Filter the player matching the logged-in user's email
+      final currentUser = players.firstWhere(
+        (player) =>
+            player['email'].toLowerCase().trim() == email?.toLowerCase().trim(),
+        orElse: () => {},
+      );
+
+      if (currentUser.isNotEmpty) {
+        setState(() {
+          userName = currentUser['name'] ?? "Guest";
+          userEmail = currentUser['email'] ?? "No Email";
+          userPhone = currentUser['phone number'] ?? "No Phone";
+          userLocation = currentUser['location'] ?? "No Location";
+          profilePicturePath = currentUser['profile_picture'];
+        });
+      } else {
+        print('User not found in players list');
+      }
+    } else {
+      print('Failed to load players');
+    }
   }
 
   Future<void> loadOnlineStatus() async {
@@ -57,11 +99,12 @@ class _My_HomePageState extends State<My_HomePage> {
   Future<void> logout() async {
     await SharedPrefs.clearUserData();
     Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) => Loginpage())); // Redirect to login
+      context,
+      MaterialPageRoute(builder: (context) => Loginpage()), // Redirect to login
+    );
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -112,6 +155,17 @@ class _My_HomePageState extends State<My_HomePage> {
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MapPage(),
+                ),
+              );
+            },
+            icon: Icon(Icons.group),
+          ),
           IconButton(
             onPressed: () {
               Navigator.push(
@@ -298,12 +352,28 @@ class _My_HomePageState extends State<My_HomePage> {
                       _buildSteamStyledButton(
                         context,
                         "Join Request",
-                        Icons.group,
+                        Icons.person_add,
                         () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => JoinRequest(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(
+                        height: 12,
+                      ),
+                      _buildSteamStyledButton(
+                        context,
+                        "Search for players",
+                        Icons.search,
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => Playersearch(),
                             ),
                           );
                         },

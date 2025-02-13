@@ -2,6 +2,7 @@ from django.urls import path
 from .views import views_admin
 from .views import views_user
 
+
 urlpatterns = [
     #admin user's
     path('csrf-token/', views_admin.csrf_token_view,name='csrf-token'),
@@ -16,5 +17,5 @@ urlpatterns = [
     path('join_request/',views_user.join_request,name='join_request'),
     path('handleparticipation/',views_user.handleparticiation,name='handleparticipation'),
     path('change_state/',views_user.Change_state,name='change_state'),
-    path('near_by/',views_user.near_by,name='near_by')
+    path('near_by/',views_user.near_by,name='near_by'),
 ]

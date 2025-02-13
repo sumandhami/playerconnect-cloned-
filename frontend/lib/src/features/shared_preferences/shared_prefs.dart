@@ -9,6 +9,7 @@ class SharedPrefs {
     String location,
     String password, {
     String? profilePicture,
+    String? locationId, // New parameter for location ID
   }) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_name', name);
@@ -18,6 +19,9 @@ class SharedPrefs {
     await prefs.setString('password', password);
     if (profilePicture != null) {
       await prefs.setString('profile_picture', profilePicture);
+    }
+    if (locationId != null) {
+      await prefs.setString('location_id', locationId); // Save location ID
     }
   }
 
@@ -31,6 +35,7 @@ class SharedPrefs {
       "location": prefs.getString('location'),
       "password": prefs.getString('password'),
       "profile_picture": prefs.getString('profile_picture'),
+      "location_id": prefs.getString('location_id'), // Retrieve location ID
     };
   }
 
