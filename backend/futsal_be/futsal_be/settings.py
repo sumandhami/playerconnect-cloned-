@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'secrectkey'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '10.0.2.2']
 
@@ -92,7 +92,7 @@ WSGI_APPLICATION = 'futsal_be.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'playerconnectdb',
+        'NAME': 'testing',
         'USER': 'root',
         'PASSWORD': 'password',
         'HOST': 'localhost',  # Or your database host
