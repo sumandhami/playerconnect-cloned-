@@ -121,7 +121,7 @@ def pick_slot(slot_id, user_id, player_count):
     session = get_session()
     try:
         # Fetch the slot
-        slot = session.query(TimeSlot).filter_by(slot_id=slot_id).first()
+        slot = session.query(TimeSlot).filter_by(slot_id=slot_id).first() 
         if not slot:
             return {"status": "error", "message": "Time slot not found!"}
 
@@ -133,13 +133,21 @@ def pick_slot(slot_id, user_id, player_count):
         slot.state = "occupied"
         slot.occupied_by = user_id
 
+        if(player_count<10):
         # Create a game request
-        game_request = GameRequest(
-            slot_id=slot_id,
-            created_by=user_id,
-            player_count=player_count,
-            status="open"
-        )
+            game_request = GameRequest(
+                slot_id=slot_id,
+                created_by=user_id,
+                player_count=player_count,
+                status="open"
+            )
+        else:
+            game_request = GameRequest(
+                slot_id=slot_id,
+                created_by=user_id,
+                player_count=player_count,
+                status="completed"
+            )
         session.add(game_request)
         session.commit()
 
