@@ -19,7 +19,7 @@ class My_HomePage extends StatefulWidget {
 }
 
 class _My_HomePageState extends State<My_HomePage> {
-  bool _isOnline = false; // Default is offline
+  String _isOnline = "offline";
   String userName = "Guest";
   String userEmail = "No Email";
   String userPhone = "No Phone";
@@ -51,7 +51,6 @@ class _My_HomePageState extends State<My_HomePage> {
 
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
-      print(responseData);
 
       final currentUser = responseData['user']; //gives logged in player detail
 
@@ -60,29 +59,59 @@ class _My_HomePageState extends State<My_HomePage> {
       print('Logged-in emai:$email');
 
       // Filter the player matching the logged-in user's email
-      if (currentUser != null && currentUser['email'].toLowerCase().trim() == email?.toLowerCase().trim()) {
-      setState(() {
-        userName = currentUser['name'] ?? "Guest";
-        userEmail = currentUser['email'] ?? "No Email";
-        userPhone = currentUser['phone_number'] ?? "No Phone";
-        userLocation = currentUser['location'] ?? "No Location";
-        profilePicturePath = currentUser['image'] ?? "default_image_path";
+      if (currentUser != null &&
+          currentUser['email'].toLowerCase().trim() ==
+              email?.toLowerCase().trim()) {
+        setState(() {
+          userName = currentUser['name'] ?? "Guest";
+          userEmail = currentUser['email'] ?? "No Email";
+          userPhone = currentUser['phone_number'] ?? "No Phone";
+          userLocation = currentUser['location'] ?? "No Location";
+          profilePicturePath = currentUser['image'] ?? "default_image_path";
 
-        _isOnline = currentUser['status'] == 'online';
-      });
+          _isOnline = currentUser['status'] ?? 'offline';
+        });
+      } else {
+        print('User not found or email mismatch');
+      }
     } else {
-      print('User not found or email mismatch');
+      print('Failed to load user data');
     }
-  } else {
-    print('Failed to load user data');
   }
-}
 
   void toggleOnlineStatus(bool value) async {
-    setState(() {
-      _isOnline = value;
-    });
-    await SharedPrefs.saveOnlineStatus(value);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('auth_token');
+    String? csrfToken = prefs.getString('csrf_token');
+    if (token == null) {
+      print('Token missing!');
+      return;
+    }
+    if (csrfToken == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CSRF token is missing!')),
+      );
+      return;
+    }
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:8000/change_state/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+        'Cookie': 'csrftoken=$csrfToken',
+      },
+    );
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      print(responseData);
+      // Update _isOnline with the string "online" or "offline"
+      setState(() {
+        _isOnline = value ? 'online' : 'offline';
+      });
+    } else {
+      print('Failed to change status');
+    }
   }
 
   Future<void> logout() async {
@@ -295,7 +324,7 @@ class _My_HomePageState extends State<My_HomePage> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    _isOnline ? "Online" : "Offline",
+                                    _isOnline == 'online' ? "Online" : "Offline",
                                     style: TextStyle(
                                       fontFamily: 'Kanit',
                                       fontSize: 16,
@@ -304,7 +333,7 @@ class _My_HomePageState extends State<My_HomePage> {
                                     ),
                                   ),
                                   Switch(
-                                    value: _isOnline,
+                                    value: _isOnline == 'online',
                                     onChanged: toggleOnlineStatus,
                                     activeColor:
                                         Color(0xFF65A3B8), // Online color
