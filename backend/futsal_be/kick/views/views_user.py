@@ -66,13 +66,24 @@ def update(request):
             phone_number = request.POST.get("phone_number")
             image = request.FILES.get("image")  # Get the uploaded file
 
-            if image:
-                image_data = image.read()  # Read the binary content of the file
-            else:
-                image_data = None
+            image_url = None
 
-            result = update_u(user_id, name, image_data, location, phone_number)
-            return JsonResponse(result)
+            if image:
+                # Save image in media/profile_pics/
+                image_filename = f"profile_{user_id}.jpg"  # Unique filename
+                image_path = os.path.join("profile_pics", image_filename)  # Relative path
+                full_image_path = os.path.join(settings.MEDIA_ROOT, image_path)  # Full path
+
+                # Save the image to disk
+                default_storage.save(full_image_path, ContentFile(image.read()))
+
+                # Create URL for the image
+                image_url = f"{settings.MEDIA_URL}{image_path}"
+
+            # Call function to update user (store image_url instead of binary data)
+            result = update_u(user_id, name, image_url, location, phone_number)
+
+            return JsonResponse({"status": "success", "image": image_url})
 
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)})
