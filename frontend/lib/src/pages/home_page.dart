@@ -30,7 +30,6 @@ class _My_HomePageState extends State<My_HomePage> {
   void initState() {
     super.initState();
     loadUserData();
-    loadOnlineStatus();
   }
 
   Future<void> loadUserData() async {
@@ -43,7 +42,7 @@ class _My_HomePageState extends State<My_HomePage> {
     }
 
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/players/'), // Fetch all players
+      Uri.parse('http://10.0.2.2:8000/getplayer/'), // Fetch logged in player
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -52,42 +51,32 @@ class _My_HomePageState extends State<My_HomePage> {
 
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
-      List<dynamic> players =
-          responseData['players']; // Access the players list
+      print(responseData);
+
+      final currentUser = responseData['user']; //gives logged in player detail
 
       // Get the logged-in user's email from SharedPreferences (set during login)
       String? email = prefs.getString('email');
       print('Logged-in emai:$email');
 
       // Filter the player matching the logged-in user's email
-      final currentUser = players.firstWhere(
-        (player) =>
-            player['email'].toLowerCase().trim() == email?.toLowerCase().trim(),
-        orElse: () => {},
-      );
+      if (currentUser != null && currentUser['email'].toLowerCase().trim() == email?.toLowerCase().trim()) {
+      setState(() {
+        userName = currentUser['name'] ?? "Guest";
+        userEmail = currentUser['email'] ?? "No Email";
+        userPhone = currentUser['phone_number'] ?? "No Phone";
+        userLocation = currentUser['location'] ?? "No Location";
+        profilePicturePath = currentUser['image'] ?? "default_image_path";
 
-      if (currentUser.isNotEmpty) {
-        setState(() {
-          userName = currentUser['name'] ?? "Guest";
-          userEmail = currentUser['email'] ?? "No Email";
-          userPhone = currentUser['phone number'] ?? "No Phone";
-          userLocation = currentUser['location'] ?? "No Location";
-          profilePicturePath = currentUser['profile_picture'];
-        });
-      } else {
-        print('User not found in players list');
-      }
+        _isOnline = currentUser['status'] == 'online';
+      });
     } else {
-      print('Failed to load players');
+      print('User not found or email mismatch');
     }
+  } else {
+    print('Failed to load user data');
   }
-
-  Future<void> loadOnlineStatus() async {
-    bool savedStatus = await SharedPrefs.getOnlineStatus();
-    setState(() {
-      _isOnline = savedStatus;
-    });
-  }
+}
 
   void toggleOnlineStatus(bool value) async {
     setState(() {
