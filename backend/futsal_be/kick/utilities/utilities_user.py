@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from backend.futsal_be.futsal_be.db_setup import Session_local
 from backend.futsal_be.kick.createToken import genToken
 from kick.models import User,FutsalLocation,TimeSlot,GameRequest,PlayerParticipation
-from sqlalchemy import text
+import base64
 
 def get_session():
     return Session_local()
@@ -41,9 +41,14 @@ def getplayer_u(user_id):
     session = get_session()
     try:
         user = session.query(User).filter_by(user_id=user_id).first()
-        
+
         if not user:
             return {"status": "error", "message": "User not found!"}
+
+        # Convert BLOB to Base64 (if image exists)
+        image_base64 = None
+        if user.image:
+            image_base64 = f"data:image/png;base64,{base64.b64encode(user.image).decode('utf-8')}"  
 
         # Prepare user data to return
         user_data = {
@@ -54,10 +59,8 @@ def getplayer_u(user_id):
             "location": user.location,
             "status": user.status,
             "credit": user.credit,
-            "image": None if not user.image else user.image.hex(),  # Convert binary to hex string
-            # "is_verified": user.is_verified,  # Uncomment if needed
+            "image": image_base64,  # Now it's in Base64 format
         }
-
         return {"status": "success", "user": user_data}
 
     except Exception as e:
@@ -121,7 +124,7 @@ def pick_slot(slot_id, user_id, player_count):
     session = get_session()
     try:
         # Fetch the slot
-        slot = session.query(TimeSlot).filter_by(slot_id=slot_id).first()
+        slot = session.query(TimeSlot).filter_by(slot_id=slot_id).first() 
         if not slot:
             return {"status": "error", "message": "Time slot not found!"}
 
@@ -133,13 +136,21 @@ def pick_slot(slot_id, user_id, player_count):
         slot.state = "occupied"
         slot.occupied_by = user_id
 
+        if(player_count<10):
         # Create a game request
-        game_request = GameRequest(
-            slot_id=slot_id,
-            created_by=user_id,
-            player_count=player_count,
-            status="open"
-        )
+            game_request = GameRequest(
+                slot_id=slot_id,
+                created_by=user_id,
+                player_count=player_count,
+                status="open"
+            )
+        else:
+            game_request = GameRequest(
+                slot_id=slot_id,
+                created_by=user_id,
+                player_count=player_count,
+                status="completed"
+            )
         session.add(game_request)
         session.commit()
 

@@ -104,11 +104,13 @@ def Change_state(request):
 #@checkAuth
 def pick_time_slot(request):
     if request.method == "POST":
+        token = request.headers.get('Authorization', '').split(' ')[1]  # 'Bearer <token>'
         try:
             # Parse JSON data
             data = json.loads(request.body)
+            user_id_dict = decryptToken(token)
+            user_id = user_id_dict['user_id']
             slot_id = data.get("slot_id")
-            user_id = data.get("user_id")
             player_count = data.get("player_count")
 
             # Validate input
